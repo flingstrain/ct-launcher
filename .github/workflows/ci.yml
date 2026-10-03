@@ -1,0 +1,64 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unittest:
+    name: python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.11', '3.13']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Show interpreter
+        run: python -VV
+
+      - name: Run test suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke-test the CLI against a throwaway collection
+        shell: bash
+        run: |
+          set -euo pipefail
+          SAMPLE="$RUNNER_TEMP/tables/rpg"
+          mkdir -p "$SAMPLE"
+          # two fake tables: one plain name, one with a version glued on by underscores
+          printf 'not-a-real-table' > "$RUNNER_TEMP/tables/Elden Ring.ct"
+          printf 'not-a-real-table' > "$SAMPLE/Hades_2_table_v0.9.ct"
+
+          python ct_launcher.py --help
+          python ct_launcher.py index "$RUNNER_TEMP/tables"
+          python ct_launcher.py list "$RUNNER_TEMP/tables" --sort name
+          python ct_launcher.py search "$RUNNER_TEMP/tables" hades
+          python ct_launcher.py export "$RUNNER_TEMP/tables" "$RUNNER_TEMP/index.json"
+
+          python - "$RUNNER_TEMP/index.json" <<'PY'
+          import json, sys
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
+          games = sorted(t["game"] for t in data)
+          assert games == ["Elden Ring", "Hades 2"], games
+          print("CLI smoke test OK:", games)
+          PY
+
+  compile:
+    name: byte-compile check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m compileall -q ct_launcher.py tests

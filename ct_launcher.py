@@ -28,15 +28,36 @@ from pathlib import Path
 CT_EXT = ".ct"
 
 
+def _smart_title(text: str) -> str:
+    """Title-case words but leave deliberate capitalisation alone.
+
+    str.title() would turn "III" into "Iii" and "NieR" into "Nier", so any token that
+    already carries an uppercase letter past the first character is kept verbatim.
+    """
+    out = []
+    for word in text.split():
+        if any(ch.isupper() for ch in word[1:]):
+            out.append(word)
+        else:
+            out.append(word.capitalize())
+    return " ".join(out)
+
+
 def guess_game(filename: str) -> str:
-    """Best-effort game name from a table filename."""
+    """Best-effort game name from a table filename.
+
+    Separators are normalised first so that version strings survive the strip even when
+    they are glued to the rest of the name with dots, dashes or underscores
+    (e.g. "Hades_2_table_v0.9" -> "Hades 2").
+    """
     stem = Path(filename).stem
-    stem = re.sub(r"(?i)\b(cheat[\s_-]?table|table|trainer|by\s+\S+)\b", " ", stem)
-    stem = re.sub(r"(?i)\bv?\d+\.\d[\d.]*\b", " ", stem)   # version strings: v1.2, 1.2.3
-    stem = re.sub(r"(?i)\bv\d+\b", " ", stem)              # v3
-    stem = re.sub(r"[._]+", " ", stem)                     # keep bare sequel ints (e.g. "3")
+    stem = re.sub(r"[._\-]+", " ", stem)                      # normalise separators first
+    stem = re.sub(r"(?i)\b(cheat\s?table|table|trainer|by\s+\S+)\b", " ", stem)
+    stem = re.sub(r"(?i)\bv?\d+ \d[\d ]*\b", " ", stem)       # version split by separators: v0 9
+    stem = re.sub(r"(?i)\bv?\d+\.\d[\d.]*\b", " ", stem)      # version strings: v1.2, 1.2.3
+    stem = re.sub(r"(?i)\bv\d+\b", " ", stem)                 # v3
     stem = re.sub(r"\s+", " ", stem).strip(" -")
-    return stem.title() or Path(filename).stem
+    return _smart_title(stem) or Path(filename).stem
 
 
 def scan(directory: Path):

@@ -1,0 +1,55 @@
+name: Filename parsed wrong
+description: ct-launcher guessed the wrong game name from a table filename
+title: "guess_game: "
+labels: ["parsing"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks — this is the most useful report for this project, because every example
+        turns into a regression test.
+
+        Please do **not** attach the `.CT` file. The filename is all that is needed, and
+        many table authors ask that their files not be redistributed.
+
+  - type: input
+    id: filename
+    attributes:
+      label: Filename
+      description: Copy it exactly, including extension, spacing and punctuation.
+      placeholder: DS3_table_v1.2_final.ct
+    validations:
+      required: true
+
+  - type: input
+    id: actual
+    attributes:
+      label: What ct-launcher returned
+      placeholder: Ds3 Final
+    validations:
+      required: true
+
+  - type: input
+    id: expected
+    attributes:
+      label: What the game actually is
+      placeholder: Dark Souls III
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Python version
+      description: Output of `python -VV`
+      placeholder: Python 3.11.9
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Other filenames in your collection that fail the same way are welcome here.
+    validations:
+      required: false
